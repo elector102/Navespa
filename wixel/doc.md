@@ -1,5 +1,17 @@
-Wixel Files
-===========
-Incluye
-- wixel_tx.c
-- wixel_rx.c
+Wixel
+===============
+
+Archivos
+---------------
+* wixel_tx.c
+* wixel_rx.c
+
+Todo List
+---------------
+* Actualizar archivos
+
+
+
+
+
+
