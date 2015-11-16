@@ -4,25 +4,25 @@
 // Emder, Fabricio
 // Mas, German Emilio
 //
-// Basado en https://github.com/pololu/minimu-9-ahrs-arduino
+// Basado en:
+// - https://github.com/pololu/minimu-9-ahrs-arduino
+// - http://starlino.com/imu_guide.html
 //
-// Ultimo update: 29/09/2015 - 17:40
+// 12/11/2015 - 01:47
 //
 //=================================================================================================
 // Control de Mouse mediante el Roll y el Pitch medidos por un IMU.
+// Se utiliza un filtro complementario para combinar la señal del acelerometro y giroscopio.
+//
+//=================================================================================================
+// TODO LIST
+// - Checksum para comunicacion?
+// - Datos a enviar
+// - data_send() en Output.ino
 //
 //=================================================================================================
 // Terminologia:
 // - IMU: Unidad de Medicion Inercial
-// - DCM: Matriz de Cosenos Directores
-// - Angulos de Euler:
-//   - Yaw: Angulo en el plano <xy> (Relacionado con el eje Z del giroscopio)
-//   - Pitch: Angulo en el plano <xz> (Relacionado con el eje Y del giroscopio)
-//   - Roll: Angulo en el plano <yz> (Relacionado con el eje X del giroscopio)
-//
-//=================================================================================================
-// TODO
-// * Comunicacion Serie (x, y, botones)
 //
 //=================================================================================================
 
@@ -41,11 +41,14 @@
 // Para Debug
 #define SERIAL_PRINT 1 // Para visualizar los datos por el puerto serie
 #define SERIAL_SEND 0 // Si envía los datos por el puerto serie al Wixel
-#define PRINT_EULER 0 // Si imprime o no los angulos de Euler
-#define PRINT_GYRO 1 // Si imprime o no los valores del gyro
-#define PRINT_ACC 1
-#define PRINT_RATE 0 // Si imprime o no el cambio en los angulos de Euler
-#define PRINT_DCM 0 // Si imprime o no la matriz DCM
+
+#define PRINT_GYRO 1 // Imprime los valores del gyro
+#define PRINT_ACC 1 // Imprime los valores del acc
+#define PRINT_RGYRO 0 // Imprime los valores del vector RwGyro
+#define PRINT_REST 0 // Imprime los valores del vector RwEst
+
+// Constantes
+#define PI 3.14159265358979f
 
 //-------------------------------------------------------------------------------------------------
 // IMU
@@ -65,20 +68,9 @@ const float sen_gx = 0.07;
 const float sen_gy = 0.07;
 const float sen_gz = 0.07;
 
-#define M_X_MIN -195 // Para calibracion del Magnetometro
-#define M_Y_MIN -261
-#define M_Z_MIN -171
-#define M_Y_MAX 226
-#define M_X_MAX 203
-#define M_Z_MAX 239
-
 // Metodos de conversion
 #define ToRad(x) ((x)*0.01745329252) // (x)*pi/180
 #define ToDeg(x) ((x)*57.2957795131) // (x)*180/pi
-
-#define scaled_gx(x) ((x)*ToRad(sen_gx)) // De bits a [rad/s]
-#define scaled_gy(x) ((x)*ToRad(sen_gy)) // De bits a [rad/s]
-#define scaled_gz(x) ((x)*ToRad(sen_gz)) // De bits a [rad/s]
 
 // Valores de Lectura
 int AN[6]; // Lecturas previas de acelerometro y giroscopio
@@ -92,83 +84,28 @@ int gx; // Giroscopio
 int gy;
 int gz;
 
-int mx; // Magnetometro
-int my;
-int mz;
-
-float c_mx; // Magnetometro con correciones
-float c_my;
-float c_mz;
-
-float m_heading; // Direccion que indica el Magnetometro
-
 //-------------------------------------------------------------------------------------------------
 // PARAMETROS Y VARIABLES DE CONTROL
 //-------------------------------------------------------------------------------------------------
 
 // Vectores utilizados en el control
+float RwEst[3] = {0,0,0}; // Vector R combinando RwAcc y RwGyro. Salida.
+float RwAcc[3] = {0,0,0}; // Vector R obtenido por Acc.
+float RwGyro[3] = {0,0,0}; // Vector R estimado del Gyro.
+
+float Awz[2] = {0,0}; // Angulo de la Proyeccion de R sobre los planos <XZ> y <YZ> con el eje Z. [deg]
+
 float v_acc[3] = {0,0,0}; // Aceleracion (x,y,z) [G]
-float v_gyro[3] = {0,0,0}; // Giroscopio (x,y,z) [rad/s]
+float v_gyro[3] = {0,0,0}; // Giroscopio (x,y,z) [deg/s]
 
-float omega_gyro[3] = {0,0,0}; // v_gyro corregido
-float omega_p[3] = {0,0,0}; // Correccion proporcional
-float omega_i[3] = {0,0,0}; // Correccion integral
-float omega[3] = {0,0,0};
+// Variables de Control y Tiempo
+float DT_S = 0.01; //Tiempo de integracion en Segundos. Un calculo cada 10 ms.
+unsigned long timer = 0;
+unsigned long timer_anterior = 0;
 
-float errorRollPitch[3] = {0,0,0};
-float errorYaw[3] = {0,0,0};
+boolean firstSample = true;
 
-// Variables de Control
-float DT_S = 0.02; //Tiempo de integracion en Segundos para el algoritmo DCM.
-
-long timer = 0;
-long timer_anterior;
-
-unsigned int counter = 0; // Para calcular Heading
-
-// Constantes Proporcional e Integral
-const float KP = 0.05; // Original: 0.02
-const float KI = 0.0; // Original: 0.00002
-
-const float KP_YAW = 0.0; // Original: 1.2
-const float KI_YAW = 0.0; // Original: 0.00002
-
-// Matrices
-float DCM_Matrix[3][3] = {
-  {1,0,0},
-  {0,1,0},
-  {0,0,1}
-};
-
-float Update_Matrix[3][3] = {
-  {0,0,0},
-  {0,0,0},
-  {0,0,0}
-};
-
-float Temporary_Matrix[3][3] = {
-  {0,0,0},
-  {0,0,0},
-  {0,0,0}
-};
-
-//-------------------------------------------------------------------------------------------------
-// ANGULOS DE EULER
-//-------------------------------------------------------------------------------------------------
-
-float roll; // Angulo de giro sobre el eje X
-float roll_anterior;
-float roll_rate;
-
-float pitch; // Angulo de giro sobre el eje Y
-float pitch_anterior;
-float pitch_rate;
-
-float yaw; // Angulo de giro sobre el eje Z
-float yaw_anterior;
-float yaw_rate;
-
-int sen_rate = 100; // Sensibilidad
+int weight_gyro = 10; // Peso del Gyro respecto al Acc. Valores entre 5 y 20.
 
 //-------------------------------------------------------------------------------------------------
 // COMUNICACION CON WIXEL
@@ -178,6 +115,7 @@ byte dato_header = 0x80;
 int dato_x = 0;
 int dato_y = 0;
 byte dato_botones;
+//TODO Checksum?
 
 //=================================================================================================
 // SETUP
@@ -223,9 +161,9 @@ void setup()
   
   delay(2000);
   digitalWrite(STATUS_LED,HIGH);
-    
-  timer=millis();  
-  counter=0;
+  
+  firstSample = true;
+  timer = millis();
 }
 
 //=================================================================================================
@@ -236,50 +174,37 @@ void loop()
 {
   if((millis()-timer)>=(DT_S*1000)) // Corre cada DT_S [segundos]
   {
-    counter++;
     timer_anterior = timer;
-    timer=millis();
+    timer = millis();
 	
-    if (timer>timer_anterior)
-      DT_S = (timer-timer_anterior)/1000.0; // Tiempo de lazo real. Usado en el DCM como integracion del giroscopio.
-    else
-      DT_S = 0;
-    
-    //-------------------------------------------------------------------------------------------------
-    // PRIMERA PARTE - ALGORITMO DCM
-    //-------------------------------------------------------------------------------------------------
-	
-    // Adquisicion de Datos
-    Read_Gyro();
-    Read_Accel();
-
-    if (counter > 5)
+    if(timer>timer_anterior)
     {
-      counter = 0;
-      Read_Compass();
-      Compass_Heading();
+      DT_S = (timer-timer_anterior)/1000.0; // Tiempo de lazo real. Integracion del giroscopio.
+    }
+    else
+    {
+      DT_S = 0;
     }
     
-    // Calculos
-    Matrix_update();
-    Normalize();
-    Drift_correction();
-    Euler_angles();
+    //-------------------------------------------------------------------------------------------------
+    // FILTRO COMPLEMENTARIO
+    //-------------------------------------------------------------------------------------------------
+	
+	getRwEst();
     
     //-------------------------------------------------------------------------------------------------
-    // SEGUNDA PARTE - COMUNICACION
+    // COMUNICACION
     //-------------------------------------------------------------------------------------------------
     
     #if SERIAL_PRINT == 1
     data_print();
     #endif
 	
+	// TODO datos
     #if SERIAL_SEND == 1
-    //dato_x = (byte)(pitch_rate);
-    //dato_y = (byte)(-yaw_rate);
-    dato_x = -pitch_rate;
-    dato_y = yaw_rate;
-    dato_botones = 0x00;
+    //dato_x = -pitch_rate;
+    //dato_y = yaw_rate;
+    //dato_botones = 0x00;
     /*
     if(digitalRead(BOTON_1))
       dato_botones = 0x01;
