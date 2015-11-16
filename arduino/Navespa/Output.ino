@@ -18,58 +18,41 @@
 //=================================================================================================
 
 void data_print()
-{  
-  // Angulos de Euler
-  #if PRINT_EULER == 1
-  Serial.print(ToDeg(roll));
-  Serial.print(",");
-  Serial.print(ToDeg(pitch));
-  Serial.print(",");
-  Serial.print(ToDeg(yaw));
-  #endif
-  
-  //Giroscopio
+{    
+  // Giroscopio
   #if PRINT_GYRO == 1
-  Serial.print(ToDeg(scaled_gx(gx)));
+  Serial.print(v_gyro[0]);
   Serial.print(",");
-  Serial.print(ToDeg(scaled_gy(gy)));
+  Serial.print(v_gyro[1]);
   Serial.print(",");
-  Serial.print(ToDeg(scaled_gz(gz)));
+  Serial.print(v_gyro[2]);
   #endif
   
-    //Giroscopio
+  // Acelerometro
   #if PRINT_ACC == 1
-  Serial.print(ax);
+  Serial.print(v_acc[0]);
   Serial.print(",");
-  Serial.print(ay);
+  Serial.print(v_acc[1]);
   Serial.print(",");
-  Serial.print(az);
+  Serial.print(v_acc[2]);
   #endif
   
-  // Cambios en los Angulos de Euler
-  #if PRINT_RATE == 1
-  //Serial.print(ToDeg(roll_rate));
-  Serial.print(roll_rate);
+  // RwGyro
+  #if PRINT_RGYRO == 1
+  Serial.print(RwGyro[0]);
   Serial.print(",");
-  //Serial.print(ToDeg(pitch_rate));
-  Serial.print(pitch_rate);
+  Serial.print(RwGyro[1]);
   Serial.print(",");
-  //Serial.print(ToDeg(yaw_rate));
-  Serial.print(yaw_rate);
+  Serial.print(RwGyro[2]);
   #endif
   
-  // Matriz DCM
-  #if PRINT_DCM==1
-  for(int i=0; i<3; i++)
-  {
-    Serial.print("[");
-    for(int j=0; j<3; j++)
-    {
-      Serial.print(DCM_Matrix[i][j]);
-      Serial.print("  ");
-    }
-    Serial.print("]");
-  }
+  // RwEst
+  #if PRINT_REST == 1
+  Serial.print(RwEst[0]);
+  Serial.print(",");
+  Serial.print(RwEst[1]);
+  Serial.print(",");
+  Serial.print(RwEst[2]);
   #endif
   
   Serial.println();
@@ -77,6 +60,7 @@ void data_print()
 
 void data_send()
 {
+  //TODO mejorar
   
   //byte paquete[] = {dato_header, dato_x, dato_y, dato_botones};
   //Serial.write(paquete, sizeof(paquete));

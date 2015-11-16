@@ -5,7 +5,11 @@
 // Emder, Fabricio
 // Mas, German Emilio
 //
-// Basado en https://github.com/pololu/minimu-9-ahrs-arduino
+// Basado en:
+// - https://github.com/pololu/minimu-9-ahrs-arduino
+// - http://starlino.com/imu_guide.html
+//
+// 12/11/2015 - 01:47
 //
 //=================================================================================================
 // Metodos relevantes al I2C, inicializacion, calibracion y lectura del IMU.
@@ -15,8 +19,7 @@
 // void I2C_Init();
 // void IMU_Init();
 // void Read_Gyro();
-// void Read_Accel();
-// void Read_Compass();
+// void Read_Acc();
 // void IMU_Calibration(int n);
 //
 //=================================================================================================
@@ -60,10 +63,13 @@ void Read_Gyro()
   gx = SENSOR_SIGN[0] * (AN[0] - AN_OFFSET[0]);
   gy = SENSOR_SIGN[1] * (AN[1] - AN_OFFSET[1]);
   gz = SENSOR_SIGN[2] * (AN[2] - AN_OFFSET[2]);
+  v_gyro[0]=(float)gx*sen_gx;
+  v_gyro[1]=(float)gy*sen_gy;
+  v_gyro[2]=(float)gz*sen_gz;
 }
 
 // Lectura del Acelerometro
-void Read_Accel()
+void Read_Acc()
 {
   compass.readAcc();
   
@@ -77,16 +83,9 @@ void Read_Accel()
   ax = SENSOR_SIGN[3] * (AN[3] - AN_OFFSET[3]);
   ay = SENSOR_SIGN[4] * (AN[4] - AN_OFFSET[4]);
   az = SENSOR_SIGN[5] * (AN[5] - AN_OFFSET[5]);
-}
-
-// Lectura Magnetometro
-void Read_Compass()
-{
-  compass.readMag();
-  
-  mx = SENSOR_SIGN[6] * compass.m.x;
-  my = SENSOR_SIGN[7] * compass.m.y;
-  mz = SENSOR_SIGN[8] * compass.m.z;
+  v_acc[0]=(float)ax*sen_ax;
+  v_acc[1]=(float)ay*sen_ay;
+  v_acc[2]=(float)az*sen_az;
 }
 
 // Calibracion del IMU
@@ -96,7 +95,7 @@ void IMU_Calibration(int n)
   for(int i=0; i<n; i++)
   {
     Read_Gyro();
-    Read_Accel();
+    Read_Acc();
     for(int j=0; j<6; j++)
       AN_OFFSET[j] += AN[j];
     delay(20);
