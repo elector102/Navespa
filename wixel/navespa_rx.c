@@ -1,12 +1,13 @@
 //=================================================================================================
-// Navespa_RX_TEST
+// navespa_rx.c
 //
 // Emder, Fabricio
 // Mas, German Emilio
 //
-// Basado en wireless_tilt_mouse_receiver app
+// Basado en:
+// - wireless_tilt_mouse_receiver app
 //
-// Ultimo update: 29/09/2015 - 20:30
+// Ultimo update: 16/11/2015 - 10:40
 //
 //=================================================================================================
 // Aplicacion Principal del Wixel Receptor.
@@ -21,33 +22,40 @@
 //
 //=================================================================================================
 
+//=================================================================================================
+// DEPENDENCIAS Y DEFINICIONES
+//=================================================================================================
+
 #include <wixel.h>
 #include <usb.h>
 #include <usb_hid.h>
 #include <radio_queue.h>
 
+// Para debug
+#define DEBUG 0
 
-//-------------------------------------------------------------------------------------------------
-
+// Variables Globales
 uint8 dato[5];
-uint16 oldtime = 0;
+uint16 timer_anterior = 0;
 uint8 dataBytesLeft = 0;
 uint8 dataBytesReceived;
 uint8 XDATA response[32];
 
-//-------------------------------------------------------------------------------------------------
+//=================================================================================================
+// FUNCIONES AUXILIARES
+//=================================================================================================
 
+// Control de LEDs del Wixel
 void updateLeds()
 {
     usbShowStatusWithGreenLed();
 }
 
-//-------------------------------------------------------------------------------------------------
-
+// Rutina de Recepcion
 void rxMouseState(void)
 {
-    static uint32 time_old = 0;
-    uint32 time;
+    static uint32 timer_anterior = 0;
+    uint32 timer;
     
     uint8 XDATA * rxBuf;
     static uint8 indice_inicio = 0;
@@ -58,7 +66,9 @@ void rxMouseState(void)
     {
 	// De los cuatro datos leidos, busca la cabecera
         for(i=0; i<5; i++)
+        {
             if(rxBuf[i]==0x80) {indice_inicio = i;}
+        }
         
 	// En base al indice de la cabecera, ordena el resto de los datos
         for(i=0; i<5; i++)
@@ -71,10 +81,10 @@ void rxMouseState(void)
         radioQueueRxDoneWithPacket();
         
         // Modificacion del estado del Mouse
-        time = getMs();
-        if(time - time_old > 20)
+        timer = getMs();
+        if(timer - timer_anterior > 20)
         {
-            time_old = time;
+            timer_anterior = timer;
             usbHidMouseInput.x = dato[1];
             usbHidMouseInput.y = dato[2];
             if(dato[3]==0x01)
@@ -87,7 +97,9 @@ void rxMouseState(void)
     }
 }
 
-//-------------------------------------------------------------------------------------------------
+//=================================================================================================
+// MAIN
+//=================================================================================================
 
 void main() 
 {
