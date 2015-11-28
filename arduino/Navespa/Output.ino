@@ -7,6 +7,8 @@
 //
 // Basado en https://github.com/pololu/minimu-9-ahrs-arduino
 //
+// 07:32 PM 28/11/2015
+//
 //=================================================================================================
 // Imprime los datos segun la variable de Debug indicada.
 //
@@ -18,23 +20,23 @@
 //=================================================================================================
 
 void data_print()
-{    
+{
   // Giroscopio
   #if PRINT_GYRO == 1
-  Serial.print(v_gyro[0]);
+  Serial.print(vGyro[0]);
   Serial.print(",");
-  Serial.print(v_gyro[1]);
+  Serial.print(vGyro[1]);
   Serial.print(",");
-  Serial.print(v_gyro[2]);
+  Serial.print(vGyro[2]);
   #endif
   
   // Acelerometro
   #if PRINT_ACC == 1
-  Serial.print(v_acc[0]);
+  Serial.print(vAcc[0]);
   Serial.print(",");
-  Serial.print(v_acc[1]);
+  Serial.print(vAcc[1]);
   Serial.print(",");
-  Serial.print(v_acc[2]);
+  Serial.print(vAcc[2]);
   #endif
   
   // RwGyro
@@ -48,11 +50,33 @@ void data_print()
   
   // RwEst
   #if PRINT_REST == 1
-  Serial.print(RwEst[0]);
+  Serial.print(RwEstSign[0]*RwEst[0]);
   Serial.print(",");
-  Serial.print(RwEst[1]);
+  Serial.print(RwEstSign[1]*RwEst[1]);
   Serial.print(",");
-  Serial.print(RwEst[2]);
+  Serial.print(RwEstSign[2]*RwEst[2]);
+  #endif
+  
+  // Print Mouse
+  #if PRINT_MOUSE == 1
+  Serial.print(datoHeader, HEX);
+  Serial.print(",");
+  Serial.print(datoX, DEC);
+  Serial.print(",");
+  Serial.print(datoY, DEC);
+  Serial.print(",");
+  Serial.print(datoBotones, HEX);
+  #endif
+  
+  // Print Limites
+  #if PRINT_LIMITES == 1
+  Serial.print(lim[0]);
+  Serial.print(",");
+  Serial.print(lim[1]);
+  Serial.print(",");
+  Serial.print(lim[2]);
+  Serial.print(",");
+  Serial.print(lim[3]);
   #endif
   
   Serial.println();
@@ -60,19 +84,6 @@ void data_print()
 
 void data_send()
 {
-  //TODO mejorar
-  
-  //byte paquete[] = {dato_header, dato_x, dato_y, dato_botones};
-  //Serial.write(paquete, sizeof(paquete));
-  
-  //Serial.print(dato_x); 
-  //Serial.print(",");
-  //Serial.print(dato_y);
-  //Serial.print(",");
-  Serial.print(ToDeg(roll));
-  Serial.print(",");
-  Serial.print(ToDeg(pitch));
-  Serial.print(",");
-  Serial.println(ToDeg(yaw));
-  
+  byte paquete[] = {datoHeader, datoX, datoY, datoBotones};
+  Serial.write(paquete, sizeof(paquete));
 }
