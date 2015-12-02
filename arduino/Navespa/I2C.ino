@@ -9,7 +9,7 @@
 // - https://github.com/pololu/minimu-9-ahrs-arduino
 // - http://starlino.com/imu_guide.html
 //
-// 07:32 PM 28/11/2015
+// mié 02 dic 2015 08:32:58 ART
 //
 //=================================================================================================
 // Metodos relevantes al I2C, inicializacion, calibracion y lectura del IMU.

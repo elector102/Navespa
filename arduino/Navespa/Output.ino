@@ -7,7 +7,7 @@
 //
 // Basado en https://github.com/pololu/minimu-9-ahrs-arduino
 //
-// 07:32 PM 28/11/2015
+// mié 02 dic 2015 08:32:34 ART 
 //
 //=================================================================================================
 // Imprime los datos segun la variable de Debug indicada.

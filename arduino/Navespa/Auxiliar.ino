@@ -9,7 +9,7 @@
 // - https://github.com/pololu/minimu-9-ahrs-arduino
 // - http://starlino.com/imu_guide.html
 //
-// 07:32 PM 28/11/2015
+// mié 02 dic 2015 08:32:00 ART 
 //
 //=================================================================================================
 // Contiene la funcion del filtro complementario y demas funciones auxiliares.
@@ -165,8 +165,12 @@ void setMouseData()
     //Derecha
     if(x>=zm[1])
     {
+      //Lineal
       aux = (x-zm[1])*velocidad;
       aux /= (lim[1]-zm[1]);
+      //Exponencial
+      //aux = velocidad*squared(x-zm[1]);
+      //aux /= squared(lim[1]-zm[1]);
     }
     else
     {
@@ -178,8 +182,12 @@ void setMouseData()
     //Atras
     if(x<=zm[0])
     {
+      //Lineal
       aux = (x-zm[0])*velocidad;
       aux /= (zm[0]-lim[0]);
+      //Exponencial
+      //aux = (-velocidad)*squared(x-zm[0]);
+      //aux /= squared(lim[0]-zm[0]);
     }
     else
     {
@@ -194,8 +202,12 @@ void setMouseData()
     //Adelante
     if(y>=zm[3])
     {
+      //Lineal
       aux = (y-zm[3])*velocidad;
       aux /= (lim[3]-zm[3]);
+      //Exponencial
+      //aux = velocidad*squared(x-zm[3]);
+      //aux /= squared(lim[3]-zm[3]);
     }
     else
     {
@@ -207,8 +219,12 @@ void setMouseData()
     //Atras
     if(y<=zm[2])
     {
+      //Lineal
       aux = (y-zm[2])*velocidad;
       aux /= (zm[2]-lim[2]);
+      //Exponencial
+      //aux = (-velocidad)*squared(x-zm[2]);
+      //aux /= squared(lim[2]-zm[2]);
     }
     else
     {
@@ -217,7 +233,7 @@ void setMouseData()
   }
   datoY = (char)aux;
   
-  if(analogRead(BOTON_CLICK)>=700)
+  if(analogRead(BOTON_CLICK)>=250)
   {
     datoBotones = 0x01;
   }
